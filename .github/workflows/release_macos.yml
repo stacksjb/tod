@@ -1,11 +1,16 @@
-name: Release Binaries (macOS and Homebrew)
-# This workflow builds and releases binaries for macOS (ARM and Intel) and publishes them to GitHub.
-# It is triggered by the completion of the "Full CI tests on ALL platforms" workflow after a PR with a version tags.
+name: macOS Test and Release
+# This runs an OS-specific test, then builds and releases binaries for macOS (ARM and Intel) and publishes them to GitHub.
+# It is triggered by the completion of the "Full CI tests on ALL platforms" workflow after a PR with a version tag.
+
+permissions:
+  contents: write  # Allow the workflow to write to the repository contents
+  pull-requests: write  # Allow the workflow to write to pull requests
+
 on:
   workflow_run:
-    workflows: ["Full Platform Tests"]  # Trigger on the completion of "Full CI tests on ALL platforms"
+    workflows: ["PR Tests"]  # Only trigger when the "PR Tests" workflow completes and the push has version tags (e.g., v0.0.0)
     types:
-      - completed  # Trigger only when the Full CI tests complete and pass
+      - completed 
   push:
     tags:
       - 'v*'  # Trigger on version tags (e.g., v0.0.0)
@@ -25,6 +30,23 @@ jobs:
     - name: Set up Rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
+    # Cache Cargo registry and build dependencies
+    - name: Cache Cargo registry and build dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git/db
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    # Run Platform Tests
+    - name: Run tests using cargo-nextest
+      run: cargo nextest run --all-features  # Run all tests with nextest.
+      continue-on-error: false  # Fail the job if tests do not pass
+
     # Add the x86_64 target to cross-compile for Intel macOS
     - name: Add x86_64 target for cross-compilation
       run: |
@@ -38,11 +60,16 @@ jobs:
         echo "BUILD_PATH=target" >> $GITHUB_ENV
         echo "echo 'Reusable variables for architecture and build paths set.'"
 
+    # Get version from tag once and set it as an environment variable
+    - name: Get version tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
     # Build for macOS (ARM)
     - name: Build for macOS (ARM)
       run: |
         ARCHITECTURE="aarch64"
-        BUILD_PATH="${{ env.BUILD_PATH }}"
+        BUILD_PATH="$BUILD_PATH"
         echo "Building for macOS $ARCHITECTURE (ARM)"
         cargo build --release --target ${ARCHITECTURE}-apple-darwin
         echo "Build completed for $ARCHITECTURE"
@@ -51,35 +78,35 @@ jobs:
     - name: Build for macOS (Intel)
       run: |
         ARCHITECTURE="x86_64"
-        BUILD_PATH="${{ env.BUILD_PATH }}"
+        BUILD_PATH="$BUILD_PATH"
         echo "Building for macOS $ARCHITECTURE (Intel)"
         cargo build --release --target ${ARCHITECTURE}-apple-darwin
         echo "Build completed for $ARCHITECTURE"
 
-    # Gzip the ARM binary as mac_arm.tar.gz
+    # Gzip the ARM binary with version and architecture in the filename
     - name: Gzipping the ARM binary
       run: |
         ARCHITECTURE="aarch64"
-        BUILD_PATH="${{ env.BUILD_PATH }}"
-        OUTPUT_FILE="mac_${ARCHITECTURE}.tar.gz"
-        tar -czf target/release/$OUTPUT_FILE -C $BUILD_PATH/${ARCHITECTURE}-apple-darwin/release .
+        BUILD_PATH="$BUILD_PATH"
+        OUTPUT_FILE="tod-${VERSION}-macOS-arm64.tar.gz"
+        tar -czf target/release/$OUTPUT_FILE -C $BUILD_PATH/${ARCHITECTURE}-apple-darwin/release tod
         echo "Created $OUTPUT_FILE"
 
-    # Gzip the Intel binary as mac_x86.tar.gz
+    # Gzip the Intel binary with version and architecture in the filename
     - name: Gzipping the Intel binary
       run: |
         ARCHITECTURE="x86_64"
-        BUILD_PATH="${{ env.BUILD_PATH }}"
-        OUTPUT_FILE="mac_${ARCHITECTURE}.tar.gz"
-        tar -czf target/release/$OUTPUT_FILE -C $BUILD_PATH/${ARCHITECTURE}-apple-darwin/release .
+        BUILD_PATH="$BUILD_PATH"
+        OUTPUT_FILE="tod-${VERSION}-macOS-x86_64.tar.gz"
+        tar -czf target/release/$OUTPUT_FILE -C $BUILD_PATH/${ARCHITECTURE}-apple-darwin/release tod
         echo "Created $OUTPUT_FILE"
 
     # Hash the release binary for ARM
     - name: Hash ARM release binary
       run: |
         ARCHITECTURE="aarch64"
-        BUILD_PATH="${{ env.BUILD_PATH }}"
-        OUTPUT_FILE="mac_${ARCHITECTURE}.tar.gz"
+        BUILD_PATH="$BUILD_PATH"
+        OUTPUT_FILE="tod-${VERSION}-macOS-arm64.tar.gz"
         HASH=$(shasum -a 256 target/release/$OUTPUT_FILE | awk '{print $1}')
         echo "${ARCHITECTURE} HASH: $HASH"
 
@@ -87,8 +114,8 @@ jobs:
     - name: Hash Intel release binary
       run: |
         ARCHITECTURE="x86_64"
-        BUILD_PATH="${{ env.BUILD_PATH }}"
-        OUTPUT_FILE="mac_${ARCHITECTURE}.tar.gz"
+        BUILD_PATH="$BUILD_PATH"
+        OUTPUT_FILE="tod-${VERSION}-macOS-x86_64.tar.gz"
         HASH=$(shasum -a 256 target/release/$OUTPUT_FILE | awk '{print $1}')
         echo "${ARCHITECTURE} HASH: $HASH"
 
@@ -97,6 +124,6 @@ jobs:
       uses: softprops/action-gh-release@v2.2.2
       with:
         files: |
-          target/release/mac_aarch64.tar.gz
-          target/release/mac_x86_64.tar.gz
+          target/release/tod-${VERSION}-macOS-arm64.tar.gz
+          target/release/tod-${VERSION}-macOS-x86_64.tar.gz
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}  # Use RELEASE_PAT token for authentication

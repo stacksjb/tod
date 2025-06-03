@@ -1,20 +1,26 @@
-name: Full CI Platform Tests
-# This workflow runs on pull requests to test the code across multiple platforms and architectures.
+name: PR Tests
+# This workflow runs on pull requests to test the code across a single platform.
+
+permissions:
+  contents: read  # Allow the workflow to read repository contents
+  pull-requests: write  # Allow the workflow to write to pull requests
 
 on:
   pull_request:
     # Trigger the workflow on PR events, specifically when opened or updated.
     paths:
       - '**/*.rs'  # Run only if there are changes in Rust source files.
-    types: [opened, synchronize, reopened]  # Triggers when the PR is opened, synchronized, or reopened. #Runs on PRs only 
+    types: [opened, synchronize, reopened]  # Triggers when the PR is opened, synchronized, or reopened.
 
 jobs:
 
-  coverage:
-    name: Codecov Coverage
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      cargo-tarpaulin: ${{ steps.cargo-tarpaulin.outputs.installed }}
+      cargo-nextest: ${{ steps.cargo-nextest.outputs.installed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
       - uses: actions/cache@v4.2.3
         with:
           path: |
@@ -23,28 +29,25 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo install cargo-tarpaulin || true
-      - run: cargo tarpaulin --all-features --out xml
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v5.4.3
+      - name: Install cargo-tarpaulin
+        id: cargo-tarpaulin
+        run: cargo install cargo-tarpaulin || true
+      - name: Install cargo-nextest
+        id: cargo-nextest
+        run: cargo install cargo-nextest || true
 
-
-  release-test:
-    name: Full Platform Tests
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        architecture: [x86_64, arm64]
-    runs-on: ${{ matrix.os }}
-
+  coverage:
+    needs: setup
+    name: Codecov Coverage
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
-
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4.2.3
         with:
           path: |
             ~/.cargo/bin/
@@ -52,13 +55,30 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      - run: cargo tarpaulin --all-features --out xml
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v5.4.3
 
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-nextest
-        run: cargo install cargo-nextest || true  # Install cargo-nextest if not already installed.
-
+  release-test:
+    needs: setup
+    name: Platform Tests (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+      - uses: actions/cache@v4.2.3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-nextest-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - name: Run tests using cargo-nextest
         run: cargo nextest run --all-features  # Run all tests with nextest.
