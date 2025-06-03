@@ -20,6 +20,7 @@ jobs:
         id: version
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=${VERSION}"  # Print the version for debugging
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: Read top line of CHANGELOG.md
