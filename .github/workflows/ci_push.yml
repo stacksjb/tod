@@ -1,28 +1,27 @@
+name: ci
+
 on: [push, pull_request]
+
+permissions:
+  contents: read  # Allow the workflow to write to the repository contents
+  pull-requests: write  # Allow the workflow to write to pull requests
 
 env:
   CARGO_TERM_COLOR: always
 
-name: ci
-
 jobs:
-  auto-merge:
-    name: Dependabot Auto Merge
-    # This job will only run for pull requests, specifically those created by Dependabot.
-    if: ${{ github.event_name == 'pull_request'}}
+  setup:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
-      - uses: ahmadnassri/action-dependabot-auto-merge@v2.6.6
-        with:
-          target: minor
-          github-token: ${{ secrets.MYTOKEN }} 
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
   check:
-    runs-on: ubuntu-latest
     name: Cargo Check
+    needs: setup
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
-      - uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -30,16 +29,17 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
-      - uses: dtolnay/rust-toolchain@stable
+          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - run: cargo check
 
   todos:
-    name: TODO and FIXME
+    name: Check for TODOs
+    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
-      - uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -47,26 +47,14 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-todos-${{ hashFiles('**/Cargo.lock') }}
-      - run: ./scripts/lint_string.sh "TODO "
-      - run: ./scripts/lint_string.sh "TODO:"
-      - run: ./scripts/lint_string.sh "FIXME "
-      - run: ./scripts/lint_string.sh "FIXME:"
-      - run: ./scripts/lint_string.sh "todo "
-      - run: ./scripts/lint_string.sh "todo:"
-      - run: ./scripts/lint_string.sh "fixme "
-      - run: ./scripts/lint_string.sh "fixme:"
-      - run: ./scripts/lint_string.sh "dbg!"
+          key: ${{ runner.os }}-cargo-todos-${{ hashFiles('**/Cargo.toml') }}
+      - run: ./scripts/lint_string.sh "TODO|FIXME|todo|fixme|dbg!"
 
   test:
+    needs: setup
     runs-on: ubuntu-latest
-    name: Cargo Tests
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4.2.2
-
-      # Caching
-      - uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -74,20 +62,16 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
-
-      # Set up Rust toolchain
-      - uses: dtolnay/rust-toolchain@stable
-
-      # Run tests with all features
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - run: cargo test --all-features
 
   fmt:
-    name: Rust-fmt (Cargo Format)
+    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
-      - uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -95,17 +79,18 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-fmt-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-fmt-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - uses: dtolnay/rust-toolchain@stable
       - run: rustup component add rustfmt
       - run: cargo fmt --all -- --check
 
   clippy:
-    name: Cargo Clippy (Lint Check)
+    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
-      - uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -113,6 +98,8 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo clippy --all-targets --all-features -- -D warnings
