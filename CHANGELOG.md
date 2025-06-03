@@ -4,7 +4,7 @@
 
 - Update CI for automatic release
 
-## 2025-05-19 v0.7.7
+## 2025-05-19 v0.7.8
 
 - Fix regression where project was not being shown while processing by filter
 - Move all mock response bodies to `json` files
