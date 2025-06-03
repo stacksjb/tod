@@ -15,14 +15,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: taiki-e/install-action@nextest
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+      - name: Test
+        run: cargo nextest run --all-features
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: true
       - name: Check
-        run: cargo check --locked
-      - name: Test
-        run: cargo nextest run --all-features
+        run: cargo check --locked --all-features
 
   todos:
     name: TODO and FIXME
