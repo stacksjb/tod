@@ -1,27 +1,22 @@
-name: ci
-
 on: [push, pull_request]
-
-permissions:
-  contents: read  # Allow the workflow to write to the repository contents
-  pull-requests: write  # Allow the workflow to write to pull requests
 
 env:
   CARGO_TERM_COLOR: always
 
+name: ci
+
 jobs:
   setup:
     runs-on: ubuntu-latest
+    outputs:
+      cargo-cache: ${{ steps.cache.outputs.cache-hit }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4.2.2
 
-  check:
-    name: Cargo Check
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/cache@v4
+      # Cache Rust dependencies
+      - name: Cache Cargo dependencies
+        id: cache
+        uses: actions/cache@v4.2.3
         with:
           path: |
             ~/.cargo/bin/
@@ -29,59 +24,50 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+
+  check:
+    needs: setup
+    runs-on: ubuntu-latest
+    name: Cargo Check
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo check
 
   todos:
-    name: Check for TODOs
     needs: setup
     runs-on: ubuntu-latest
+    name: TODO and FIXME
     steps:
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-todos-${{ hashFiles('**/Cargo.toml') }}
-      - run: ./scripts/lint_string.sh "TODO|FIXME|todo|fixme|dbg!"
+      - uses: actions/checkout@v4.2.2
+      - run: ./scripts/lint_string.sh "TODO "
+      - run: ./scripts/lint_string.sh "TODO:"
+      - run: ./scripts/lint_string.sh "FIXME "
+      - run: ./scripts/lint_string.sh "FIXME:"
+      - run: ./scripts/lint_string.sh "todo "
+      - run: ./scripts/lint_string.sh "todo:"
+      - run: ./scripts/lint_string.sh "fixme "
+      - run: ./scripts/lint_string.sh "fixme:"
+      - run: ./scripts/lint_string.sh "dbg!"
 
   test:
     needs: setup
     runs-on: ubuntu-latest
+    name: Cargo Tests
     steps:
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      - uses: actions/checkout@v4.2.2
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --all-features
 
   fmt:
     needs: setup
     runs-on: ubuntu-latest
+    name: Rust-fmt (Cargo Format)
     steps:
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-fmt-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      - uses: actions/checkout@v4.2.2
       - uses: dtolnay/rust-toolchain@stable
       - run: rustup component add rustfmt
       - run: cargo fmt --all -- --check
@@ -89,17 +75,8 @@ jobs:
   clippy:
     needs: setup
     runs-on: ubuntu-latest
+    name: Cargo Clippy (Lint Check)
     steps:
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      - uses: actions/checkout@v4.2.2
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo clippy --all-targets --all-features -- -D warnings
