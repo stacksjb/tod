@@ -24,11 +24,12 @@ jobs:
           VERSION=${VERSION#v}  # Remove the 'v' prefix
           echo "VERSION=${VERSION}" >> $GITHUB_ENV  # Save to environment variable for later use
 
-      - name: Read top line of CHANGELOG.md
+      - name: Read CHANGELOG.md
+        # This step checks the top 7 lines of the CHANGELOG.md file to ensure it contains the same version number as the release tag.
         id: changelog
         run: |
           # Read the top line of CHANGELOG.md and extract the version
-          changelog_version=$(head -n 1 CHANGELOG.md | grep -oP '^## \d{4}-\d{2}-\d{2} v[0-9]+\.[0-9]+\.[0-9]+')
+          changelog_version=$(head -n 7 CHANGELOG.md | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n 1)
           echo "changelog_version=${changelog_version}" >> $GITHUB_ENV
 
       - name: Compare version tag with changelog
@@ -45,7 +46,7 @@ jobs:
             exit 1
           fi
 
-      - name: Trigger Release Workflows if Versions Match
+      - name: Trigger Release Workflows
         if: success()  # Only run this step if the previous steps were successful (i.e., the changelog version matches the tag)
         uses: peter-evans/repository-dispatch@v3
         with:
