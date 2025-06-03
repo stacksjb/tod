@@ -7,7 +7,8 @@ on:
       - completed
   push:
     # tags:
-    #   - 'v*' #Temporarily disabled to trigger on every push
+    #   - 'v*' # Temporarily disabled to trigger on every push
+
 jobs:
   check-changelog:
     runs-on: ubuntu-latest
@@ -15,55 +16,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract version tag
-        id: version
+      - name: Extract version tag and compare directly
         run: |
-          # Extract the version number from the tag and remove the 'v' prefix
+          # Extract version number from the tag and remove the 'v' prefix
           VERSION=${GITHUB_REF#refs/tags/}  # Strip out 'refs/tags/'
           VERSION=${VERSION#v}  # Remove the 'v' prefix
-          echo "VERSION=${VERSION}"  # Print the version for debugging
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV  # Save to environment variable for later use
+          echo "Version from tag: ${VERSION}"
 
-      - name: Check and print version
-        run: |
-          # Print the VERSION from the environment variable
-          echo "The extracted version is: $VERSION"  # Check if the version is correctly set
-
-      - name: Read top line of CHANGELOG.md
-        id: changelog
-        run: |
-          # Check the content of CHANGELOG.md's top line
-          echo "Contents of CHANGELOG.md (first few lines):"
-          head -n 5 CHANGELOG.md
-          
-          # Read the top line of CHANGELOG.md and extract the version
+          # Read the top lines of CHANGELOG.md and extract the version
           changelog_version=$(head -n 7 CHANGELOG.md | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n 1)
-          echo "changelog_version=${changelog_version}"  # Print the extracted changelog version
+          changelog_version_clean=${changelog_version#*v}  # Remove 'v' from changelog version
+          echo "Version from CHANGELOG.md: ${changelog_version_clean}"
 
-      - name: Extract version from Cargo.toml
-        id: cargo_toml
-        run: |
           # Extract version from Cargo.toml (example: version = "0.7.7")
           cargo_version=$(grep -oP '^version = "\d+\.\d+\.\d+"$' Cargo.toml | sed 's/version = "//g' | sed 's/"//g')
-          echo "cargo_version=${cargo_version}" >> $GITHUB_ENV  # Save to environment variable for later use
-          echo "cargo_version=${cargo_version}"  # Print the extracted Cargo.toml version
+          echo "Version from Cargo.toml: ${cargo_version}"
 
-      - name: Compare version tag with changelog and Cargo.toml
-        run: |
-          # Remove the leading 'v' from changelog_version to match the tag version format
-          changelog_version_clean=${changelog_version#*v}  # Remove 'v' from changelog version
-          
-          # Compare the tag version with the changelog and Cargo.toml versions
-          echo "Comparing version tag v${VERSION} with changelog version ${changelog_version_clean} and cargo version ${cargo_version}"
+          # Compare the versions directly
           if [[ "${changelog_version_clean}" == "${VERSION}" && "${cargo_version}" == "${VERSION}" ]]; then
-            echo "Versions match."
+            echo "All versions match."
           else
             echo "Versions do not match. Failing the release check."
-            exit 1
+            exit 1  # Fail if any version doesn't match
           fi
 
       - name: Trigger Release Workflows
-        if: success()  # Only run this step if the previous steps were successful (i.e., the changelog version matches the tag)
+        if: success()  # Only run this step if all previous steps were successful
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}
