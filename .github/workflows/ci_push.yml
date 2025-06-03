@@ -14,12 +14,12 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
+            ~/.cargo/bin/  # Caching binary installations (like cargo-nextest)
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Use a unified cache key for dependencies
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo check
 
@@ -31,12 +31,12 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-todos-${{ hashFiles('**/Cargo.lock') }}
+            ~/.cargo/bin/  # Caching binary installations
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Same cache as other jobs
       - run: ./scripts/lint_string.sh "TODO "
       - run: ./scripts/lint_string.sh "TODO:"
       - run: ./scripts/lint_string.sh "FIXME "
@@ -58,12 +58,12 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+            ~/.cargo/bin/  # Caching binary installations
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Same cache as other jobs
 
       # Set up Rust toolchain
       - uses: dtolnay/rust-toolchain@stable
@@ -79,12 +79,12 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-fmt-${{ hashFiles('**/Cargo.lock') }}
+            ~/.cargo/bin/  # Caching binary installations
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Same cache as other jobs
       - uses: dtolnay/rust-toolchain@stable
       - run: rustup component add rustfmt
       - run: cargo fmt --all -- --check
@@ -97,11 +97,11 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
+            ~/.cargo/bin/  # Caching binary installations
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Same cache as other jobs
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo clippy --all-targets --all-features -- -D warnings
