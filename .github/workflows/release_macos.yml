@@ -26,6 +26,10 @@ jobs:
     - name: Set up Rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
+    - name: Install cargo-nextest
+      run: |
+        cargo install cargo-nextest  # Install cargo-nextest
+
     # Cache Cargo registry and build dependencies
     - name: Cache Cargo registry and build dependencies
       uses: actions/cache@v4
