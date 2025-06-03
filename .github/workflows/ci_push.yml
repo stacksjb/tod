@@ -2,41 +2,34 @@ on: [push, pull_request]
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+  CARGO_PROFILE_RELEASE_LTO: true
+  CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 1
 
 name: ci
 
 jobs:
-  check:
+  test:
     runs-on: ubuntu-latest
-    name: Cargo Check
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-            ~/.cargo/bin/  # Caching binary installations (like cargo-nextest)
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Use a unified cache key for dependencies
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo check
+      - uses: taiki-e/install-action@nextest
+      - uses: Swatinem/rust-cache@v2
+      - name: Check
+        run: cargo check --locked
+      - name: Test
+        run: cargo nextest 
 
   todos:
     name: TODO and FIXME
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-            ~/.cargo/bin/  # Caching binary installations
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Same cache as other jobs
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@nextest
+      - uses: Swatinem/rust-cache@v2
       - run: ./scripts/lint_string.sh "TODO "
       - run: ./scripts/lint_string.sh "TODO:"
       - run: ./scripts/lint_string.sh "FIXME "
@@ -47,41 +40,14 @@ jobs:
       - run: ./scripts/lint_string.sh "fixme:"
       - run: ./scripts/lint_string.sh "dbg!"
 
-  test:
-    runs-on: ubuntu-latest
-    name: Cargo Tests
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Caching
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-            ~/.cargo/bin/  # Caching binary installations
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Same cache as other jobs
-
-      # Run tests with all features
-      - run: cargo test --all-features
-
   fmt:
     name: Rust-fmt (Cargo Format)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-            ~/.cargo/bin/  # Caching binary installations
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Same cache as other jobs
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@nextest
+      - uses: Swatinem/rust-cache@v2
       - run: rustup component add rustfmt
       - run: cargo fmt --all -- --check
 
@@ -90,14 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-            ~/.cargo/bin/  # Caching binary installations
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}  # Same cache as other jobs
       - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@nextest
+      - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --all-targets --all-features -- -D warnings
