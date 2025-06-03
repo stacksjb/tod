@@ -54,14 +54,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Cache Rust dependencies
+      - name: Setup Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: true
       - name: Install Clippy
-        run: cargo install clippy
+        run: rustup component add clippy
 
       - name: Run Clippy
         run: cargo clippy -- -D warnings
