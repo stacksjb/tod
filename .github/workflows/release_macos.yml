@@ -1,20 +1,14 @@
 name: macOS Test and Release
 # This runs an OS-specific test, then builds and releases binaries for macOS (ARM and Intel) and publishes them to GitHub.
-# It is triggered by the completion of the "Full CI tests on ALL platforms" workflow after a PR with a version tag.
+# It is triggered by the completion of the "Release Check" workflow when the CHANGELOG.md is updated and version tag is present.
 
 permissions:
   contents: write  # Allow the workflow to write to the repository contents
   pull-requests: write  # Allow the workflow to write to pull requests
 
 on:
-  workflow_run:
-    workflows: ["PR Tests"]  # Only trigger when the "PR Tests" workflow completes and the push has version tags (e.g., v0.0.0)
-    types:
-      - completed 
-  push:
-    tags:
-      - 'v*'  # Trigger on version tags (e.g., v0.0.0)
-
+  repository_dispatch:
+    types: [trigger-release]  # Triggered by the 'repository-dispatch' event with 'trigger-release' type
 
 jobs:
   build:
@@ -25,6 +19,8 @@ jobs:
     # Checkout the repository
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.client_payload.ref }}  # Use the ref from the repository-dispatch payload to checkout the specific commit
 
     # Set up Rust toolchain
     - name: Set up Rust toolchain
@@ -126,4 +122,4 @@ jobs:
         files: |
           target/release/tod-${VERSION}-macOS-arm64.tar.gz
           target/release/tod-${VERSION}-macOS-x86_64.tar.gz
-        token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}  # Use RELEASE_PAT token for authentication
+        token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 

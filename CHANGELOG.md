@@ -2,6 +2,8 @@
 
 ## Unreleased (on main branch only)
 
+- Update CI for automatic release
+
 ## 2025-05-19 v0.7.7
 
 - Fix regression where project was not being shown while processing by filter

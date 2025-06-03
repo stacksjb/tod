@@ -1,0 +1,37 @@
+name: Release Check
+
+on:
+  workflow_run:
+    workflows: ["PR Tests"]  # Trigger after the PR tests are completed successfully
+    types:
+      - completed
+  push:
+    tags:
+      - 'v*'  # Ensure the workflow only runs for version tags (e.g., v1.0.0)
+
+jobs:
+  check-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check if CHANGELOG.md has been updated
+        id: changelog-check
+        run: |
+          # Check if CHANGELOG.md has been updated
+          if git diff --name-only $GITHUB_SHA $GITHUB_BASE_REF | grep -q 'CHANGELOG.md'; then
+            echo "CHANGELOG.md has been updated."
+          else
+            echo "CHANGELOG.md has not been updated. Failing the release check."
+            exit 1  # Fail the job if CHANGELOG.md hasn't been updated
+          fi
+
+      - name: Trigger Release Workflows if CHANGELOG.md Updated
+        if: success()  # Only run this step if the previous steps were successful (i.e., CHANGELOG.md updated)
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}
+          repository: ${{ github.repository }}
+          event-type: trigger-release
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
