@@ -19,20 +19,26 @@ jobs:
       - name: Extract version tag
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "VERSION: ${VERSION}"  # Print the version for debugging
-          echo "VERSION: ${VERSION}" >> $GITHUB_ENV
+          # Extract the version number from the tag, remove 'v' prefix
+          VERSION=${GITHUB_REF#refs/tags/}  # Strip out 'refs/tags/'
+          VERSION=${VERSION#v}  # Remove the 'v' prefix
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV  # Save to environment variable for later use
 
       - name: Read top line of CHANGELOG.md
         id: changelog
         run: |
+          # Read the top line of CHANGELOG.md and extract the version
           changelog_version=$(head -n 1 CHANGELOG.md | grep -oP '^## \d{4}-\d{2}-\d{2} v[0-9]+\.[0-9]+\.[0-9]+')
           echo "changelog_version=${changelog_version}" >> $GITHUB_ENV
 
       - name: Compare version tag with changelog
         run: |
-          echo "Comparing version tag v${VERSION} with changelog version ${changelog_version}"
-          if [[ "v${VERSION}" == "${changelog_version}" ]]; then
+          # Remove the leading 'v' from changelog_version to match the tag version format
+          changelog_version_clean=${changelog_version#*v}  # Remove 'v' from changelog version
+          
+          # Compare the tag version with the changelog version
+          echo "Comparing version tag v${VERSION} with changelog version ${changelog_version_clean}"
+          if [[ "${changelog_version_clean}" == "${VERSION}" ]]; then
             echo "Versions match."
           else
             echo "Versions do not match. Failing the release check."
@@ -40,7 +46,7 @@ jobs:
           fi
 
       - name: Trigger Release Workflows if Versions Match
-        if: success()
+        if: success()  # Only run this step if the previous steps were successful (i.e., the changelog version matches the tag)
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}
