@@ -2,12 +2,12 @@ name: Release Check
 
 on:
   workflow_run:
-    workflows: ["PR Tests"]  # Trigger after the PR tests are completed successfully
+    workflows: ["PR Tests"]
     types:
       - completed
   push:
     tags:
-      - 'v*'  # Ensure the workflow only runs for version tags (e.g., v1.0.0)
+      - 'v*'
 
 jobs:
   check-changelog:
@@ -16,30 +16,33 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get version tag
+      - name: Extract version tag
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV  # Extract version from the tag (e.g., v0.7.7)
-
-      - name: Check if CHANGELOG.md top line matches the version tag
-        id: changelog-check
         run: |
-          # Read the top line of CHANGELOG.md
-          changelog_version=$(head -n 3 CHANGELOG.md | grep -oP '^## \d{4}-\d{2}-\d{2} v[0-9]+\.[0-9]+\.[0-9]+')
-          echo "Top line in CHANGELOG.md: $changelog_version"
-          
-          # Compare the changelog version with the tag version
-          if [[ "$changelog_version" == "## $(date +%Y-%m-%d) v${VERSION}" ]]; then
-            echo "CHANGELOG.md has been updated with the correct version."
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Read top line of CHANGELOG.md
+        id: changelog
+        run: |
+          changelog_version=$(head -n 1 CHANGELOG.md | grep -oP '^## \d{4}-\d{2}-\d{2} v[0-9]+\.[0-9]+\.[0-9]+')
+          echo "changelog_version=${changelog_version}" >> $GITHUB_ENV
+
+      - name: Compare version tag with changelog
+        run: |
+          echo "Comparing version tag v${VERSION} with changelog version ${changelog_version}"
+          if [[ "v${VERSION}" == "${changelog_version}" ]]; then
+            echo "Versions match."
           else
-            echo "CHANGELOG.md top version does not match the tag version. Failing the release check."
-            exit 1  # Fail the job if the top line doesn't match the version tag
+            echo "Versions do not match. Failing the release check."
+            exit 1
           fi
 
-      - name: Trigger Release Workflows if CHANGELOG.md Version Matches Tag
-        if: success()  # Only run this step if the previous steps were successful (i.e., the changelog version matches the tag)
+      - name: Trigger Release Workflows if Versions Match
+        if: success()
         uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}  # Replace with GITHUB_TOKEN if needed
+          token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}
           repository: ${{ github.repository }}
           event-type: trigger-release
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
