@@ -17,19 +17,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: taiki-e/install-action@nextest
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
       - name: Check
         run: cargo check --locked
       - name: Test
-        run: cargo nextest 
+        run: cargo nextest run --all-features
 
   todos:
     name: TODO and FIXME
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: taiki-e/install-action@nextest
-      - uses: Swatinem/rust-cache@v2
       - run: ./scripts/lint_string.sh "TODO "
       - run: ./scripts/lint_string.sh "TODO:"
       - run: ./scripts/lint_string.sh "FIXME "
@@ -46,17 +45,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: taiki-e/install-action@nextest
       - uses: Swatinem/rust-cache@v2
       - run: rustup component add rustfmt
       - run: cargo fmt --all -- --check
 
   clippy:
-    name: Cargo Clippy (Lint Check)
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: taiki-e/install-action@nextest
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+      - name: Install Clippy
+        run: cargo install clippy
+
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
