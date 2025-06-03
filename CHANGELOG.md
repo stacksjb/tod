@@ -2,7 +2,7 @@
 
 ## Unreleased (on main branch only)
 
-- Update CI for automatic release
+- Update CI for automatic release and build checks
 
 ## 2025-05-19 v0.7.8
 
