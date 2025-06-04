@@ -2,7 +2,7 @@ name: Release Check
 
 on:
   workflow_run:
-    workflows: ["PR Tests"]
+    workflows: ["PR Tests", "CI", "TODOs", "Rust-fmt", "Clippy"]
     types:
       - completed
   push:
