@@ -66,8 +66,7 @@ jobs:
       uses: softprops/action-gh-release@v2.2.2
       with:
         files: target/release/tod-${VERSION}-MacOS-arm64.tar.gz
-        tag_name: ${{ github.event.client_payload.ref }}  # Use the tag from the payload
-        name: ${{ github.event.client_payload.tag_name }}  # Use the tag name passed directly in the webhook
+        tag_name: ${{ github.event.client_payload.tag_name }}   # Use the tag_name from the payload
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}  # Use RELEASE_PAT token for authentication
 
     # Build for macOS (Intel)
@@ -91,6 +90,5 @@ jobs:
       uses: softprops/action-gh-release@v2.2.2
       with:
         files: target/release/tod-${VERSION}-macOS-x86_64.tar.gz
-        tag_name: ${{ github.event.client_payload.ref }}  # Use the tag from the payload
-        name: ${{ github.event.client_payload.tag_name }}  # Use the tag name passed directly in the webhook
+        tag_name: ${{ github.event.client_payload.tag_name }}  # Use the tag name passed directly in the webhook
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}  # Use RELEASE_PAT token for authentication
