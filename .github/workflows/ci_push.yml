@@ -15,12 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-
       - uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: true
-      - name: Install cargo-nextest
-        run: cargo install cargo-nextest
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
       - name: Test
         run: cargo nextest run --all-features
   check:
