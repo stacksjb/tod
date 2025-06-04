@@ -74,10 +74,10 @@ jobs:
 
     # Upload ARM binaries to GitHub release using softprops/action-gh-release
     - name: Upload macOS ARM binary to GitHub release
-      uses: softprops/action-gh-release@v2.2.2
+      uses: softprops/action-gh-release@v2
       with:
-        files: target/release/tod-${{ steps.package-version.outputs.version}}-macOS-arm64.tar.gz
-        tag_name: ${{ steps.package-version.outputs.version}}
+        files: target/release/tod-${{ steps.package-version.outputs.version }}-macOS-arm64.tar.gz
+        tag_name: ${{ steps.package-version.outputs.version }}
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 
 
     # Build for macOS (Intel)
@@ -98,8 +98,9 @@ jobs:
 
     # Upload binaries to GitHub release using softprops/action-gh-release
     - name: Upload Intel binary to GitHub release
-      uses: softprops/action-gh-release@v2.2.2
+      uses: softprops/action-gh-release@v2
       with:
-        files: target/release/tod-${{ steps.package-version.outputs.version}}-macOS-x86_64.tar.gz
-        tag_name: ${{ steps.package-version.outputs.version}}
+        files: target/release/tod-${{ steps.package-version.outputs.version }}-macOS-x86_64.tar.gz
+        # Use the version extracted from Cargo.toml as the tag name
+        tag_name: ${{ steps.package-version.outputs.version }}
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 
