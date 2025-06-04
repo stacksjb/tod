@@ -71,14 +71,6 @@ jobs:
         HASH=$(shasum -a 256 target/release/tod-$VERSION-macOS-arm64.tar.gz | awk '{print $1}')
         echo "ARM HASH: $HASH"
 
-    # Upload ARM binaries to GitHub release using softprops/action-gh-release
-    - name: Upload macOS ARM binary to GitHub release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: target/release/tod-${{ steps.package-version.outputs.metadata }}-macOS-arm64.tar.gz
-        tag_name: ${{ steps.package-version.outputs.metadata }}
-        token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 
-
     # Build for macOS (Intel)
     - name: Build for macOS (Intel)
       run: |
@@ -95,11 +87,12 @@ jobs:
         HASH=$(shasum -a 256 target/release/tod-$VERSION-macOS-x86_64.tar.gz | awk '{print $1}')
         echo "Intel HASH: $HASH"
 
-    # Upload binaries to GitHub release using softprops/action-gh-release
-    - name: Upload Intel binary to GitHub release
+    # Upload Bbnaries to GitHub release using softprops/action-gh-release
+    - name: Upload macOS binaries to GitHub release
       uses: softprops/action-gh-release@v2
       with:
-        files: target/release/tod-${{ steps.package-version.outputs.metadata }}-macOS-x86_64.tar.gz
-        # Use the version extracted from Cargo.toml as the tag name
-        tag_name: ${{ steps.package-version.outputs.metadata }}
+        files: |
+          target/release/tod-${{ steps.package-version.outputs.VERSION }}-macOS-arm64.tar.gz
+          target/release/tod-${{ steps.package-version.outputs.VERSION }}-macOS-x86_64.tar.gz
+        tag_name: ${{ steps.package-version.outputs.VERSION }}
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 

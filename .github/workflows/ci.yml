@@ -12,6 +12,7 @@ name: ci
 jobs:
   test:
     runs-on: ubuntu-latest
+    name: Cargo CI Tests
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
