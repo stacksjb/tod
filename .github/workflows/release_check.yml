@@ -6,9 +6,8 @@ on:
     types:
       - completed
   push:
-    # tags:
-    #   - 'v*' # Temporarily disabled to trigger on every push
-
+    tags:
+     - "v*.*.*" # Trigger on version tags like v1.2.3
 jobs:
   check-changelog:
     runs-on: ubuntu-latest
@@ -41,10 +40,10 @@ jobs:
           fi
 
       - name: Trigger Release Workflows
-        if: success()  # Only run this step if all previous steps were successful
+        if: success() && startsWith(github.ref, 'refs/tags/')  # Only run this step if all previous steps were successful
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.TOD_CONTENTS_READ_WRITE }}
           repository: ${{ github.repository }}
           event-type: trigger-release
-          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "tag_name": "${{ github.ref }}" }'
