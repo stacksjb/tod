@@ -92,7 +92,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          target/release/tod-${{ steps.package-version.outputs.VERSION }}-macOS-arm64.tar.gz
-          target/release/tod-${{ steps.package-version.outputs.VERSION }}-macOS-x86_64.tar.gz
-        tag_name: ${{ steps.package-version.outputs.VERSION }}
+          target/release/tod-${{ env.VERSION }}-macOS-arm64.tar.gz
+          target/release/tod-${{ env.VERSION }}-macOS-x86_64.tar.gz
+        tag_name: ${{ env.VERSION }}
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 
