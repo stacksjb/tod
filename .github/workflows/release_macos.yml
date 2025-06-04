@@ -16,6 +16,7 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
   CARGO_PROFILE_RELEASE_LTO: true
   CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 1
+
 jobs:
   build:
     name: Build, Release, and Publish for macOS (ARM & Intel)
@@ -96,3 +97,5 @@ jobs:
           target/release/tod-${{ env.VERSION }}-macOS-x86_64.tar.gz
         tag_name: ${{ env.VERSION }}
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 
+        fail_on_unmatched_files: true
+        generate_release_notes: true
