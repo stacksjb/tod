@@ -40,17 +40,17 @@ jobs:
       run: cargo nextest run --all-features  # Run all tests with nextest.
       continue-on-error: false  # Fail the job if tests do not pass
 
-    # Get version from Cargo.toml and set it as build variable
+    # Get version from Cargo.toml
     - name: Set VERSION from Cargo.toml
       id: cargo-get
       uses: nicolaiunrein/cargo-get@master
       with:
         subcommand: package.version 
-    
-    # Set the version as an environment variable for later steps
-    - name: Set version environment variable
-      run: echo "VERSION=$(cargo get package.version --pretty)" >> $GITHUB_ENV
 
+    # Set the version as an output variable
+    - name: Set version output
+      id: package-version
+      run: echo "VERSION=$(cargo get package.version)" >> $GITHUB_ENV
     # Add the x86_64 target to cross-compile for Intel macOS
     - name: Add x86_64 target for cross-compilation
       run: rustup target add x86_64-apple-darwin
@@ -76,8 +76,8 @@ jobs:
     - name: Upload macOS ARM binary to GitHub release
       uses: softprops/action-gh-release@v2.2.2
       with:
-        files: target/release/tod-$VERSION-macOS-arm64.tar.gz
-        tag_name: $VERSION
+        files: target/release/tod-${{ steps.package-version.outputs.version}}-macOS-arm64.tar.gz
+        tag_name: ${{ steps.package-version.outputs.version}}
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 
 
     # Build for macOS (Intel)
@@ -100,6 +100,6 @@ jobs:
     - name: Upload Intel binary to GitHub release
       uses: softprops/action-gh-release@v2.2.2
       with:
-        files: target/release/tod-$VERSION-macOS-x86_64.tar.gz
-        tag_name: $VERSION 
+        files: target/release/tod-${{ steps.package-version.outputs.version}}-macOS-x86_64.tar.gz
+        tag_name: ${{ steps.package-version.outputs.version}}
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 
