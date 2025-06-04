@@ -50,7 +50,7 @@ jobs:
     # Set the version as an output variable
     - name: Set version output
       id: package-version
-      run: echo "VERSION=$(cargo get package.version)" >> $GITHUB_ENV
+      run: echo "VERSION=$(cargo get package.version --pretty)" >> $GITHUB_ENV
     # Add the x86_64 target to cross-compile for Intel macOS
     - name: Add x86_64 target for cross-compilation
       run: rustup target add x86_64-apple-darwin
@@ -62,8 +62,7 @@ jobs:
 
     # Gzip the ARM binary as tod-<version>-macOS-arm64.tar.gz
     - name: Gzipping the ARM binary
-      run: |
-        VERSION=$(cargo pkgid | sed -E 's/.*#([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+      run:
         tar -czf target/release/tod-$VERSION-macOS-arm64.tar.gz -C target/aarch64-apple-darwin/release tod
 
     # Hash the release binary for ARM
@@ -76,8 +75,8 @@ jobs:
     - name: Upload macOS ARM binary to GitHub release
       uses: softprops/action-gh-release@v2
       with:
-        files: target/release/tod-${{ steps.package-version.outputs.version }}-macOS-arm64.tar.gz
-        tag_name: ${{ steps.package-version.outputs.version }}
+        files: target/release/tod-${{ steps.package-version.outputs.metadata }}-macOS-arm64.tar.gz
+        tag_name: ${{ steps.package-version.outputs.metadata }}
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 
 
     # Build for macOS (Intel)
@@ -100,7 +99,7 @@ jobs:
     - name: Upload Intel binary to GitHub release
       uses: softprops/action-gh-release@v2
       with:
-        files: target/release/tod-${{ steps.package-version.outputs.version }}-macOS-x86_64.tar.gz
+        files: target/release/tod-${{ steps.package-version.outputs.metadata }}-macOS-x86_64.tar.gz
         # Use the version extracted from Cargo.toml as the tag name
-        tag_name: ${{ steps.package-version.outputs.version }}
+        tag_name: ${{ steps.package-version.outputs.metadata }}
         token: ${{ secrets.TOD_CONTENTS_READ_WRITE }} 
