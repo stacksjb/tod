@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use urlencoding::encode;
 mod request;
 
-use crate::comments;
 use crate::comments::{Comment, CommentResponse};
 use crate::config::Config;
 use crate::errors::Error;
 use crate::id::{self, Resource};
 use crate::labels::{self, Label, LabelResponse};
+use crate::oauth::{CLIENT_ID, CLIENT_SECRET};
 use crate::projects::{Project, ProjectResponse};
 use crate::sections::{Section, SectionResponse};
 use crate::shell::execute_command;
@@ -18,6 +18,7 @@ use crate::tasks::{Task, TaskResponse};
 use crate::users;
 use crate::users::User;
 use crate::{color, projects, sections, tasks, time};
+use crate::{comments, oauth};
 
 // TODOIST URLS
 pub const TASKS_URL: &str = "/api/v1/tasks/";
@@ -27,6 +28,9 @@ const USER_URL: &str = "/api/v1/user";
 const PROJECTS_URL: &str = "/api/v1/projects";
 const LABELS_URL: &str = "/api/v1/labels";
 const IDS_URL: &str = "/api/v1/id_mappings/";
+const ACCESS_TOKEN_URL: &str = "/oauth/access_token";
+pub const OAUTH_URL: &str = "/oauth/authorize";
+
 /// Number of items that can be requested from API at once
 pub const QUERY_LIMIT: u8 = 200;
 
@@ -35,7 +39,7 @@ pub async fn test_all_endpoints(config: Config) -> Result<String, Error> {
     let name = "TEST".to_string();
     let date = time::date_string_today(&config)?;
     let priority = Priority::None;
-    let labels = vec![String::from("one"), String::from("two")];
+    let labels: Vec<String> = vec!["one".into(), "two".into()];
 
     println!("Creating project");
     let project = create_project(&config, name.clone(), name.clone(), false, false).await?;
@@ -105,7 +109,7 @@ pub async fn test_all_endpoints(config: Config) -> Result<String, Error> {
     let _task = update_task_labels(&config, &task, labels, false).await?;
 
     println!("Adding task label");
-    let _task = add_task_label(&config, task.clone(), String::from("three"), false).await?;
+    let _task = add_task_label(&config, task.clone(), "three".into(), false).await?;
 
     println!("Updating task due with natural language");
     let _task =
@@ -164,6 +168,15 @@ pub async fn get_task(config: &Config, id: &str) -> Result<Task, Error> {
     tasks::json_to_task(json)
 }
 
+pub async fn get_access_token(config: &Config, code: &str) -> Result<String, Error> {
+    let url = ACCESS_TOKEN_URL.to_string();
+    let body = json!({"code": code, "client_id": CLIENT_ID, "client_secret": CLIENT_SECRET});
+
+    let json = request::post_todoist(config, url, body, true).await?;
+
+    oauth::json_to_access_token(json).map(|t| t.access_token)
+}
+
 /// Add Task without natural language support but supports additional parameters
 #[allow(clippy::too_many_arguments)]
 pub async fn create_task(
@@ -177,7 +190,7 @@ pub async fn create_task(
     labels: &[String],
 ) -> Result<Task, Error> {
     let project_id = project.id.clone();
-    let url = String::from(TASKS_URL);
+    let url = TASKS_URL.into();
     let mut body: HashMap<String, Value> = HashMap::new();
     body.insert("content".to_owned(), Value::String(content.to_owned()));
     body.insert(
@@ -403,7 +416,7 @@ pub async fn update_task_priority(
 
     request::post_todoist(config, url, body, spinner).await?;
     // Does not pass back an task
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 
 /// Add a label to task by ID
@@ -420,7 +433,7 @@ pub async fn add_task_label(
 
     request::post_todoist(config, url, body, spinner).await?;
     // Does not pass back an task
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 
 /// Update due date for task using natural language
@@ -450,7 +463,7 @@ pub async fn update_task_due_natural_language(
 
     request::post_todoist(config, url, body, spinner).await?;
     // Does not pass back a task
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 
 /// Update the content of a task by ID
@@ -465,7 +478,7 @@ pub async fn update_task_content(
 
     request::post_todoist(config, url, body, spinner).await?;
     // Does not pass back a task
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 
 /// Update the content of a task by ID
@@ -491,7 +504,7 @@ pub async fn update_task_deadline(
 
     request::post_todoist(config, url, body, spinner).await?;
     // Does not pass back a task
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 
 /// Update the description of a task by ID
@@ -506,7 +519,7 @@ pub async fn update_task_description(
 
     request::post_todoist(config, url, body, spinner).await?;
     // Does not pass back a task
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 
 /// Update the labels of a task by ID
@@ -522,7 +535,7 @@ pub async fn update_task_labels(
 
     request::post_todoist(config, url, body, spinner).await?;
     // Does not pass back a task
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 
 /// Complete the last task returned by "next task"
@@ -540,7 +553,7 @@ pub async fn complete_task(config: &Config, task: &Task, spinner: bool) -> Resul
     // Execute the execute_command() complete_task_command if set in config
 
     // API does not pass back a task
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 
 pub async fn delete_task(config: &Config, task: &Task, spinner: bool) -> Result<String, Error> {
@@ -548,7 +561,7 @@ pub async fn delete_task(config: &Config, task: &Task, spinner: bool) -> Result<
     let url = format!("{}{}", TASKS_URL, task.id);
 
     request::delete_todoist(config, url, body, spinner).await?;
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 
 pub async fn delete_project(
@@ -560,7 +573,7 @@ pub async fn delete_project(
     let body = json!({});
 
     request::delete_todoist(config, url, body, spinner).await?;
-    Ok(String::from("✓"))
+    Ok("✓".into())
 }
 pub async fn create_project(
     config: &Config,
@@ -778,7 +791,7 @@ mod tests {
         let project = test::fixtures::project();
 
         assert_eq!(
-            create_section(&config, String::from("New task"), &project, false).await,
+            create_section(&config, "New task".into(), &project, false).await,
             Ok(test::fixtures::section())
         );
         mock.assert();
@@ -799,7 +812,7 @@ mod tests {
         let task = test::fixtures::today_task().await;
         let comment = test::fixtures::comment();
         assert_eq!(
-            create_comment(&config, &task, String::from("New comment"), true).await,
+            create_comment(&config, &task, "New comment".into(), true).await,
             Ok(comment)
         );
         mock.assert();
