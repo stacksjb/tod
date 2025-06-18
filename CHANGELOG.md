@@ -6,6 +6,14 @@
 - Allow user to choose `OAuth` or `Developer Token` on first run
 - Prompt user to `auth login` when API returns unauthorized
 
+## [0.9.0](https://github.com/stacksjb/tod-dev/compare/v0.8.0...v0.9.0) (2025-06-18)
+
+
+### Features
+
+* add reminder to quick add ([21c7198](https://github.com/stacksjb/tod-dev/commit/21c7198e72cdba116641941b36673a5fdf94124a))
+* prompt user to auth login when unauthorized ([f86742a](https://github.com/stacksjb/tod-dev/commit/f86742a689d22412eb11d1e488136eeadd22617d))
+
 ## [0.8.0](https://github.com/alanvardy/tod/compare/v0.7.7...v0.8.0) (2025-06-10)
 
 
